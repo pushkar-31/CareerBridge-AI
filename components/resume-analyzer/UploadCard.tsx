@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface Analysis {
   atsScore: number;
@@ -16,7 +16,22 @@ export default function UploadCard() {
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
   const resultsRef = useRef<HTMLDivElement | null>(null);
+
+  // Automatically scroll after results are rendered
+  useEffect(() => {
+    if (!analysis) return;
+
+    const timer = setTimeout(() => {
+      resultsRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [analysis]);
 
   const handleFileChange = (
     event: React.ChangeEvent<HTMLInputElement>
@@ -74,7 +89,9 @@ export default function UploadCard() {
       try {
         data = JSON.parse(responseText);
       } catch {
-        throw new Error("Server returned an invalid response.");
+        throw new Error(
+          "Server returned an invalid response."
+        );
       }
 
       if (!response.ok) {
@@ -84,18 +101,15 @@ export default function UploadCard() {
       }
 
       if (data.success && data.analysis) {
-  setAnalysis(data.analysis);
+        setAnalysis(data.analysis);
 
-  alert("Resume analysis completed successfully!");
-
-  setTimeout(() => {
-    resultsRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-  }, 100);
-} else {
-        throw new Error("Analysis data was not received.");
+        alert(
+          "Resume analysis completed successfully!"
+        );
+      } else {
+        throw new Error(
+          "Analysis data was not received."
+        );
       }
     } catch (error) {
       console.error(error);
@@ -198,6 +212,7 @@ export default function UploadCard() {
             ? "Analyzing Resume..."
             : "Analyze Resume"}
         </button>
+
       </div>
 
       {/* =========================
@@ -205,10 +220,10 @@ export default function UploadCard() {
       ========================= */}
 
       {analysis && (
-  <div
-    ref={resultsRef}
-    className="mt-10 space-y-6 scroll-mt-24"
-  >
+        <div
+          ref={resultsRef}
+          className="mt-12 scroll-mt-24 space-y-6"
+        >
 
           {/* Header */}
 
@@ -231,6 +246,7 @@ export default function UploadCard() {
             </p>
 
             <div className="mt-3 flex items-end gap-2">
+
               <span className="text-5xl font-bold text-blue-600">
                 {analysis.atsScore}
               </span>
@@ -238,6 +254,7 @@ export default function UploadCard() {
               <span className="mb-1 text-2xl text-gray-400">
                 / 100
               </span>
+
             </div>
 
             <div className="mt-5 h-3 overflow-hidden rounded-full bg-gray-200">
@@ -254,6 +271,7 @@ export default function UploadCard() {
               on structure, skills, experience, and ATS
               readability.
             </p>
+
           </div>
 
           {/* SUMMARY */}
@@ -267,6 +285,7 @@ export default function UploadCard() {
             <p className="mt-4 leading-7 text-gray-600">
               {analysis.summary}
             </p>
+
           </div>
 
           {/* SKILLS */}
@@ -278,6 +297,7 @@ export default function UploadCard() {
             </h3>
 
             <div className="mt-4 flex flex-wrap gap-2">
+
               {analysis.skills.map((skill) => (
                 <span
                   key={skill}
@@ -286,7 +306,9 @@ export default function UploadCard() {
                   {skill}
                 </span>
               ))}
+
             </div>
+
           </div>
 
           {/* STRENGTHS */}
@@ -298,12 +320,14 @@ export default function UploadCard() {
             </h3>
 
             <div className="mt-4 space-y-3">
+
               {analysis.strengths.map(
                 (strength, index) => (
                   <div
                     key={index}
                     className="flex gap-3"
                   >
+
                     <span className="font-semibold text-green-600">
                       ✓
                     </span>
@@ -311,10 +335,13 @@ export default function UploadCard() {
                     <p className="text-gray-600">
                       {strength}
                     </p>
+
                   </div>
                 )
               )}
+
             </div>
+
           </div>
 
           {/* WEAKNESSES */}
@@ -326,12 +353,14 @@ export default function UploadCard() {
             </h3>
 
             <div className="mt-4 space-y-3">
+
               {analysis.weaknesses.map(
                 (weakness, index) => (
                   <div
                     key={index}
                     className="flex gap-3"
                   >
+
                     <span className="font-semibold text-orange-500">
                       !
                     </span>
@@ -339,10 +368,13 @@ export default function UploadCard() {
                     <p className="text-gray-600">
                       {weakness}
                     </p>
+
                   </div>
                 )
               )}
+
             </div>
+
           </div>
 
           {/* SUGGESTIONS */}
@@ -359,12 +391,14 @@ export default function UploadCard() {
             </p>
 
             <div className="mt-5 space-y-4">
+
               {analysis.suggestions.map(
                 (suggestion, index) => (
                   <div
                     key={index}
                     className="flex gap-3 rounded-xl bg-white p-4"
                   >
+
                     <span className="font-bold text-blue-600">
                       {index + 1}.
                     </span>
@@ -372,14 +406,18 @@ export default function UploadCard() {
                     <p className="text-gray-600">
                       {suggestion}
                     </p>
+
                   </div>
                 )
               )}
+
             </div>
+
           </div>
 
         </div>
       )}
+
     </div>
   );
 }

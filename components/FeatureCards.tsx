@@ -30,7 +30,7 @@ const features = [
     color: "text-green-600",
     bg: "bg-green-100",
     button: "Match Resume",
-    href: "/dashboard/match",
+    href: "/jd-matcher",
     bullets: [
       "Match Score",
       "Missing Skills",
