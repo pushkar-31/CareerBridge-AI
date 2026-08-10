@@ -1,5 +1,6 @@
 import PDFParser from "pdf2json";
 import ai from "@/lib/gemini";
+import { ingestDocument } from "@/lib/rag/ingest";
 
 export const runtime = "nodejs";
 
@@ -51,27 +52,33 @@ export async function POST(request: Request) {
 
     const resumeText = await new Promise<string>(
       (resolve, reject) => {
-        pdfParser.on("pdfParser_dataError", (error) => {
-          reject(error);
-        });
+        pdfParser.on(
+          "pdfParser_dataError",
+          (error) => {
+            reject(error);
+          }
+        );
 
-        pdfParser.on("pdfParser_dataReady", (pdfData) => {
-          let text = "";
+        pdfParser.on(
+          "pdfParser_dataReady",
+          (pdfData) => {
+            let text = "";
 
-          for (const page of pdfData.Pages) {
-            for (const textObject of page.Texts) {
-              for (const textRun of textObject.R) {
-                text += textRun.T + " ";
+            for (const page of pdfData.Pages) {
+              for (const textObject of page.Texts) {
+                for (const textRun of textObject.R) {
+                  text += textRun.T + " ";
+                }
+
+                text += "\n";
               }
 
               text += "\n";
             }
 
-            text += "\n";
+            resolve(text.trim());
           }
-
-          resolve(text.trim());
-        });
+        );
 
         pdfParser.parseBuffer(buffer);
       }
@@ -93,10 +100,58 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log("=== TEXT EXTRACTION SUCCESS ===");
+    console.log(
+      "=== TEXT EXTRACTION SUCCESS ==="
+    );
 
     // --------------------------------
-    // STEP 3: Send Resume to Gemini
+    // STEP 3: Ingest Resume into RAG
+    // --------------------------------
+
+    console.log(
+      "=== STARTING RAG INGESTION ==="
+    );
+
+    let ingestionResult;
+
+    try {
+      ingestionResult =
+        await ingestDocument(
+          resumeText,
+          "resume"
+        );
+
+      console.log(
+        "=== RAG INGESTION SUCCESS ==="
+      );
+
+      console.log(
+        "RAG ingestion result:",
+        ingestionResult
+      );
+    } catch (error) {
+      console.error(
+        "=== RAG INGESTION FAILED ==="
+      );
+
+      console.error(error);
+
+      return Response.json(
+        {
+          success: false,
+          message:
+            "Resume text was extracted, but storing it in the RAG database failed.",
+          error:
+            error instanceof Error
+              ? error.message
+              : "RAG ingestion failed.",
+        },
+        { status: 500 }
+      );
+    }
+
+    // --------------------------------
+    // STEP 4: Send Resume to Gemini
     // --------------------------------
 
     const prompt = `
@@ -114,8 +169,6 @@ Return ONLY valid JSON with exactly these fields:
   "weaknesses": string[],
   "suggestions": string[]
 }
-
-Rules:
 
 Rules:
 
@@ -137,14 +190,19 @@ Resume:
 ${resumeText}
 `;
 
-    console.log("Sending resume to Gemini...");
+    console.log(
+      "Sending resume to Gemini..."
+    );
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash-lite",
-      contents: prompt,
-    });
+    const response =
+      await ai.models.generateContent({
+        model: "gemini-3.5-flash-lite",
+        contents: prompt,
+      });
 
-    console.log("=== GEMINI RESPONSE RECEIVED ===");
+    console.log(
+      "=== GEMINI RESPONSE RECEIVED ==="
+    );
 
     const analysisText = response.text;
 
@@ -152,23 +210,29 @@ ${resumeText}
       return Response.json(
         {
           success: false,
-          message: "Gemini returned an empty response.",
+          message:
+            "Gemini returned an empty response.",
         },
         { status: 500 }
       );
     }
 
-    console.log("Gemini raw response:");
+    console.log(
+      "Gemini raw response:"
+    );
+
     console.log(analysisText);
 
     // --------------------------------
-    // STEP 4: Parse Gemini JSON
+    // STEP 5: Parse Gemini JSON
     // --------------------------------
 
     let analysis;
 
     try {
-      analysis = JSON.parse(analysisText);
+      analysis = JSON.parse(
+        analysisText
+      );
     } catch (error) {
       console.error(
         "Gemini returned invalid JSON:",
@@ -185,17 +249,39 @@ ${resumeText}
       );
     }
 
-    console.log("=== ANALYSIS SUCCESS ===");
+    console.log(
+      "=== ANALYSIS SUCCESS ==="
+    );
+
+    // --------------------------------
+    // STEP 6: Return Analysis + RAG Info
+    // --------------------------------
 
     return Response.json({
       success: true,
       fileName: file.name,
+
       analysis,
+
+      rag: {
+        ingested: true,
+        documentType: "resume",
+        chunks:
+          ingestionResult?.chunks ?? 0,
+        collectionId:
+          ingestionResult?.collectionId ??
+          null,
+      },
     });
   } catch (error) {
-    console.error("=== ANALYZE API ERROR ===");
+    console.error(
+      "=== ANALYZE API ERROR ==="
+    );
+
     console.error(error);
-    console.error("========================");
+    console.error(
+      "========================"
+    );
 
     return Response.json(
       {
