@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { FileText, Target, Bot, ArrowRight } from "lucide-react";
+import {
+  FileText,
+  Target,
+  Bot,
+  ArrowRight,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const features = [
@@ -46,7 +51,7 @@ const features = [
     color: "text-purple-600",
     bg: "bg-purple-100",
     button: "Start AI Chat",
-    href: "/dashboard/chat",
+    href: "/career-chat",
     bullets: [
       "RAG Powered",
       "Career Guidance",
@@ -58,81 +63,129 @@ const features = [
 
 export default function FeatureCards() {
   return (
-    <section
-      id="features"
-      className="mx-auto max-w-7xl px-6 py-24"
-    >
+    <section className="mx-auto max-w-7xl px-6 pb-16">
+
+      {/* Section heading */}
       <motion.div
-        initial={{ opacity: 0, y: 25 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
+        initial={{
+          opacity: 0,
+          y: 25,
+        }}
+        whileInView={{
+          opacity: 1,
+          y: 0,
+        }}
+        viewport={{
+          once: true,
+        }}
         className="mb-16 text-center"
       >
-        <h2 className="text-4xl font-bold md:text-5xl">
+        <h2 className="text-4xl font-bold tracking-tight text-gray-900">
           Core Features
         </h2>
 
-        <p className="mt-4 text-lg text-gray-600">
-          Everything you need to analyze your resume, compare it with job
-          descriptions, and receive AI-powered career guidance.
+        <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-600">
+          Everything you need to analyze your resume,
+          compare it with job descriptions, and receive
+          AI-powered career guidance.
         </p>
       </motion.div>
 
+      {/* Feature cards */}
       <div className="grid gap-8 md:grid-cols-3">
-        {features.map((feature, index) => {
-          const Icon = feature.icon;
+        {features.map(
+          (feature, index) => {
+            const Icon =
+              feature.icon;
 
-          return (
-            <motion.div
-              key={feature.title}
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.2 }}
-              whileHover={{
-                y: -10,
-              }}
-              className="flex flex-col rounded-3xl border border-gray-200 bg-white p-8 shadow-sm transition-all duration-300 hover:shadow-2xl"
-            >
-              <div
-                className={`mb-6 flex h-16 w-16 items-center justify-center rounded-2xl ${feature.bg}`}
+            return (
+              <motion.div
+                key={feature.title}
+                initial={{
+                  opacity: 0,
+                  y: 40,
+                }}
+                whileInView={{
+                  opacity: 1,
+                  y: 0,
+                }}
+                viewport={{
+                  once: true,
+                }}
+                transition={{
+                  delay:
+                    index * 0.2,
+                }}
+                whileHover={{
+                  y: -10,
+                }}
+                className="flex flex-col rounded-3xl border border-gray-200 bg-white p-8 shadow-sm transition-all duration-300 hover:shadow-2xl"
               >
-                <Icon className={`h-8 w-8 ${feature.color}`} />
-              </div>
+                {/* Icon */}
+                <div
+                  className={`mb-6 flex h-16 w-16 items-center justify-center rounded-2xl ${feature.bg}`}
+                >
+                  <Icon
+                    className={`h-8 w-8 ${feature.color}`}
+                  />
+                </div>
 
-              <h3 className="text-2xl font-bold">
-                {feature.title}
-              </h3>
+                {/* Title */}
+                <h3 className="text-2xl font-bold text-gray-900">
+                  {feature.title}
+                </h3>
 
-              <p className="mt-4 text-gray-600 leading-7">
-                {feature.description}
-              </p>
+                {/* Description */}
+                <p className="mt-4 leading-7 text-gray-600">
+                  {
+                    feature.description
+                  }
+                </p>
 
-              <div className="my-8 h-px bg-gray-200" />
+                {/* Divider */}
+                <div className="my-8 h-px bg-gray-200" />
 
-              <ul className="space-y-3">
-                {feature.bullets.map((item) => (
-                  <li
-                    key={item}
-                    className="flex items-center gap-2 text-gray-700"
+                {/* Features */}
+                <ul className="space-y-3">
+                  {feature.bullets.map(
+                    (item) => (
+                      <li
+                        key={item}
+                        className="flex items-center gap-2 text-gray-700"
+                      >
+                        <span className="font-semibold text-green-600">
+                          ✓
+                        </span>
+
+                        {item}
+                      </li>
+                    )
+                  )}
+                </ul>
+
+                {/* Button */}
+                <div className="mt-auto pt-10">
+                  <Link
+                    href={
+                      feature.href
+                    }
+                    className="block"
                   >
-                    <span className="text-green-600">✓</span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
+                    <Button
+                      className="w-full rounded-xl py-6 text-base"
+                    >
+                      {
+                        feature.button
+                      }
 
-              <div className="mt-auto pt-10">
-                <Link href={feature.href}>
-                  <Button className="w-full rounded-xl py-6 text-base">
-                    {feature.button}
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
-              </div>
-            </motion.div>
-          );
-        })}
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
+              </motion.div>
+            );
+          }
+        )}
       </div>
     </section>
   );

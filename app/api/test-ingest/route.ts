@@ -5,43 +5,68 @@ export const runtime = "nodejs";
 export async function GET() {
   try {
     console.log(
-      "=== INGESTION TEST STARTED ==="
+      "=== TEST INGEST STARTED ==="
     );
 
-    const sampleResume = `
-      Pushkar Shelke is a software developer
-      with experience in React.js, Next.js,
-      Node.js, Express.js, TypeScript, Java,
-      Python, SQL and AI technologies.
+    // --------------------------------
+    // Test document
+    // --------------------------------
 
-      He has built full-stack applications
-      and AI-powered projects involving
-      LangChain, RAG, vector embeddings
-      and modern web technologies.
+    const testText = `
+Pushkar Shelke is a software developer.
 
-      He has solved more than 250 Data Structures
-      and Algorithms problems across LeetCode
-      and GeeksforGeeks.
-    `;
+He has experience with React.js,
+Next.js, Node.js, Express.js,
+TypeScript, Java, Python and SQL.
 
-    const result = await ingestDocument(
-      sampleResume,
-      "resume"
-    );
+He has also worked with AI technologies
+including LangChain, RAG, vector embeddings,
+LLM integration and AI-powered applications.
+
+He has solved more than 250 Data Structures
+and Algorithms problems.
+`;
+
+    // --------------------------------
+    // Generate test session
+    // --------------------------------
+
+    const sessionId =
+      crypto.randomUUID();
 
     console.log(
-      "=== INGESTION TEST SUCCESS ==="
+      "Test Session ID:",
+      sessionId
+    );
+
+    // --------------------------------
+    // Ingest document
+    // --------------------------------
+
+    const result =
+      await ingestDocument(
+        testText,
+        "resume",
+        sessionId
+      );
+
+    console.log(
+      "=== TEST INGEST SUCCESS ==="
     );
 
     return Response.json({
       success: true,
+
       message:
-        "Document ingested successfully.",
+        "Test document ingested successfully.",
+
+      sessionId,
+
       result,
     });
   } catch (error) {
     console.error(
-      "=== INGESTION TEST ERROR ==="
+      "=== TEST INGEST ERROR ==="
     );
 
     console.error(error);
@@ -49,10 +74,11 @@ export async function GET() {
     return Response.json(
       {
         success: false,
+
         message:
           error instanceof Error
             ? error.message
-            : "Document ingestion failed.",
+            : "Test ingestion failed.",
       },
       {
         status: 500,

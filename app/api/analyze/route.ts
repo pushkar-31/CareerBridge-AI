@@ -1,12 +1,15 @@
 import PDFParser from "pdf2json";
 import ai from "@/lib/gemini";
-import { ingestDocument } from "@/lib/rag/ingest";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
     console.log("=== ANALYZE API STARTED ===");
+
+    // --------------------------------
+    // STEP 1: Get uploaded file
+    // --------------------------------
 
     const formData = await request.formData();
 
@@ -36,17 +39,19 @@ export async function POST(request: Request) {
     console.log("Size:", file.size);
 
     // --------------------------------
-    // STEP 1: PDF → Buffer
+    // STEP 2: PDF → Buffer
     // --------------------------------
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    console.log("Buffer created");
+    console.log("Buffer created.");
 
     // --------------------------------
-    // STEP 2: Extract PDF Text
+    // STEP 3: Extract PDF Text
     // --------------------------------
+
+    console.log("Extracting resume text...");
 
     const pdfParser = new PDFParser();
 
@@ -67,6 +72,12 @@ export async function POST(request: Request) {
             for (const page of pdfData.Pages) {
               for (const textObject of page.Texts) {
                 for (const textRun of textObject.R) {
+                  /*
+                   * Do NOT use decodeURIComponent().
+                   *
+                   * Some PDFs contain malformed encoded
+                   * text which can cause URIError.
+                   */
                   text += textRun.T + " ";
                 }
 
@@ -105,53 +116,7 @@ export async function POST(request: Request) {
     );
 
     // --------------------------------
-    // STEP 3: Ingest Resume into RAG
-    // --------------------------------
-
-    console.log(
-      "=== STARTING RAG INGESTION ==="
-    );
-
-    let ingestionResult;
-
-    try {
-      ingestionResult =
-        await ingestDocument(
-          resumeText,
-          "resume"
-        );
-
-      console.log(
-        "=== RAG INGESTION SUCCESS ==="
-      );
-
-      console.log(
-        "RAG ingestion result:",
-        ingestionResult
-      );
-    } catch (error) {
-      console.error(
-        "=== RAG INGESTION FAILED ==="
-      );
-
-      console.error(error);
-
-      return Response.json(
-        {
-          success: false,
-          message:
-            "Resume text was extracted, but storing it in the RAG database failed.",
-          error:
-            error instanceof Error
-              ? error.message
-              : "RAG ingestion failed.",
-        },
-        { status: 500 }
-      );
-    }
-
-    // --------------------------------
-    // STEP 4: Send Resume to Gemini
+    // STEP 4: Prepare Gemini Prompt
     // --------------------------------
 
     const prompt = `
@@ -185,10 +150,17 @@ Rules:
 - Return ONLY valid JSON.
 - Do not use markdown code blocks.
 
+Current date:
+August 2026
+
 Resume:
 
 ${resumeText}
 `;
+
+    // --------------------------------
+    // STEP 5: Send Resume to Gemini
+    // --------------------------------
 
     console.log(
       "Sending resume to Gemini..."
@@ -204,7 +176,8 @@ ${resumeText}
       "=== GEMINI RESPONSE RECEIVED ==="
     );
 
-    const analysisText = response.text;
+    const analysisText =
+      response.text;
 
     if (!analysisText) {
       return Response.json(
@@ -224,18 +197,20 @@ ${resumeText}
     console.log(analysisText);
 
     // --------------------------------
-    // STEP 5: Parse Gemini JSON
+    // STEP 6: Parse Gemini JSON
     // --------------------------------
 
     let analysis;
 
     try {
-      analysis = JSON.parse(
-        analysisText
-      );
+      analysis =
+        JSON.parse(analysisText);
     } catch (error) {
       console.error(
-        "Gemini returned invalid JSON:",
+        "Gemini returned invalid JSON:"
+      );
+
+      console.error(
         analysisText
       );
 
@@ -249,29 +224,62 @@ ${resumeText}
       );
     }
 
+    // --------------------------------
+    // STEP 7: Validate Analysis
+    // --------------------------------
+
+    if (
+      typeof analysis.atsScore !==
+      "number"
+    ) {
+      return Response.json(
+        {
+          success: false,
+          message:
+            "Gemini returned an invalid ATS score.",
+        },
+        { status: 500 }
+      );
+    }
+
+    if (
+      !Array.isArray(
+        analysis.skills
+      ) ||
+      !Array.isArray(
+        analysis.strengths
+      ) ||
+      !Array.isArray(
+        analysis.weaknesses
+      ) ||
+      !Array.isArray(
+        analysis.suggestions
+      )
+    ) {
+      return Response.json(
+        {
+          success: false,
+          message:
+            "Gemini returned an invalid analysis structure.",
+        },
+        { status: 500 }
+      );
+    }
+
     console.log(
       "=== ANALYSIS SUCCESS ==="
     );
 
     // --------------------------------
-    // STEP 6: Return Analysis + RAG Info
+    // STEP 8: Return Analysis
     // --------------------------------
 
     return Response.json({
       success: true,
+
       fileName: file.name,
 
       analysis,
-
-      rag: {
-        ingested: true,
-        documentType: "resume",
-        chunks:
-          ingestionResult?.chunks ?? 0,
-        collectionId:
-          ingestionResult?.collectionId ??
-          null,
-      },
     });
   } catch (error) {
     console.error(
@@ -279,6 +287,7 @@ ${resumeText}
     );
 
     console.error(error);
+
     console.error(
       "========================"
     );

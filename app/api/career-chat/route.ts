@@ -5,12 +5,9 @@ export const runtime = "nodejs";
 type CareerChatRequest = {
   question: string;
   sessionId: string;
-  documentType?: "resume" | "jd";
 };
 
-export async function POST(
-  request: Request
-) {
+export async function POST(request: Request) {
   try {
     console.log(
       "=== CAREER CHAT API STARTED ==="
@@ -25,11 +22,8 @@ export async function POST(
     const sessionId =
       body.sessionId?.trim();
 
-    const documentType =
-      body.documentType;
-
     // --------------------------------
-    // Validate question
+    // Validate Question
     // --------------------------------
 
     if (!question) {
@@ -46,7 +40,7 @@ export async function POST(
     }
 
     // --------------------------------
-    // Validate session
+    // Validate Session ID
     // --------------------------------
 
     if (!sessionId) {
@@ -55,27 +49,6 @@ export async function POST(
           success: false,
           message:
             "Session ID is required.",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    // --------------------------------
-    // Validate document type
-    // --------------------------------
-
-    if (
-      documentType &&
-      documentType !== "resume" &&
-      documentType !== "jd"
-    ) {
-      return Response.json(
-        {
-          success: false,
-          message:
-            "Invalid document type.",
         },
         {
           status: 400,
@@ -93,29 +66,19 @@ export async function POST(
       sessionId
     );
 
-    console.log(
-      "Document type:",
-      documentType ?? "all"
-    );
-
     // --------------------------------
-    // Generate RAG answer
+    // Generate RAG Answer
     // --------------------------------
 
     const result =
       await generateRAGAnswer(
         question,
-        sessionId,
-        documentType
+        sessionId
       );
 
     console.log(
       "=== CAREER CHAT API SUCCESS ==="
     );
-
-    // --------------------------------
-    // Return response
-    // --------------------------------
 
     return Response.json({
       success: true,
